@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroStock - Mapa y Geolocalización</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+:root{--bg-dark:#1a1c23;--panel-dark:#24262d;--input-bg:#2d2f36;--accent:#7e3af2;--text-main:#e5e7eb;--text-muted:#9ca3af;--success:#0e9f6e;--danger:#f05252;--warning:#e3a008;--info:#3f83f8;--border:#374151}
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;margin:0;display:flex;height:100vh;background:var(--bg-dark);color:var(--text-main);overflow:hidden}
+nav{width:100px;background:var(--panel-dark);display:flex;flex-direction:column;align-items:center;padding-top:20px;border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto}
+.nav-item{width:100%;padding:18px 0;display:flex;flex-direction:column;align-items:center;color:var(--text-muted);cursor:pointer;text-decoration:none;border-left:3px solid transparent}
+.nav-item:hover,.nav-item.active{color:var(--accent);background:rgba(126,58,242,.1);border-left-color:var(--accent)}
+.nav-item i{font-size:1.4rem;margin-bottom:8px}.nav-item span{font-size:.7rem;font-weight:600;text-align:center}
+main{flex:1;overflow-y:auto;padding:25px}
+.top{display:flex;justify-content:space-between;align-items:center;background:var(--panel-dark);padding:18px 20px;border:1px solid var(--border);border-radius:12px;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.badge{background:var(--input-bg);padding:9px 13px;border-radius:8px;border:1px solid var(--border);font-weight:bold}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:18px}
+.card{background:var(--panel-dark);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
+.card h3{margin:0 0 8px;font-size:.72rem;color:var(--text-muted);letter-spacing:.04em}
+.big{font-size:1.35rem;font-weight:bold}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+button,.btn{border:1px solid var(--border);background:var(--input-bg);color:white;padding:10px 14px;border-radius:8px;font-weight:bold;cursor:pointer;text-decoration:none;font-size:.85rem;display:inline-flex;align-items:center;gap:6px}
+button.primary,.btn.primary{background:var(--accent);border-color:var(--accent)}
+button.ok{background:var(--success);border-color:var(--success)}
+button.warn{background:#d97706;border-color:#d97706}
+button.sm,.btn.sm{padding:6px 10px;font-size:.72rem}
+button:hover,.btn:hover{filter:brightness(1.12)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select{background:var(--input-bg);border:1px solid var(--border);color:white;padding:10px;border-radius:8px;outline:none;width:100%}
+label{font-size:.75rem;color:var(--text-muted);display:block;margin:10px 0 4px}
+.panel{background:var(--panel-dark);border:1px solid var(--border);border-radius:12px;margin-bottom:18px;overflow:hidden}
+.panel-title{padding:13px 16px;border-bottom:1px solid var(--border);font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-body{padding:15px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{background:var(--input-bg);border:1px solid var(--border);padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:.82rem;color:var(--text-muted)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:white}
+#mapa-leaflet{height:480px;border-radius:10px;border:1px solid var(--border);background:#111}
+#mapa-leaflet .leaflet-tile-pane{filter:invert(.92) hue-rotate(180deg) brightness(.95) contrast(.9)}
+#marco-matriz{width:100%;height:560px;border:1px solid var(--border);border-radius:10px;background:#111}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border)}
+th{font-size:.7rem;color:var(--text-muted);text-transform:uppercase}
+td{font-size:.82rem}
+tr.yo td{background:rgba(126,58,242,.12)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.dot.on{background:var(--success)}.dot.off{background:#6b7280}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.rank-row{display:flex;justify-content:space-between;padding:9px;border-bottom:1px solid var(--border);font-size:.85rem}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#24262d;color:#e5e7eb}
+.leaflet-popup-content a{color:#93c5fd}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media(max-width:700px){body{flex-direction:column}nav{order:2;width:100%;height:68px;min-height:68px;padding:0;flex-direction:row;overflow-x:auto;overflow-y:hidden}.nav-item{flex:0 0 72px;height:68px;padding:7px 2px;justify-content:center;border-left:0;border-top:3px solid transparent}.nav-item:hover,.nav-item.active{border-left:0;border-top-color:var(--accent)}.nav-item i{font-size:1rem;margin-bottom:2px}.nav-item span{font-size:.55rem}main{order:1;height:calc(100vh - 68px);padding:10px}.grid{grid-template-columns:1fr 1fr;gap:8px}.actions>*{flex:1 1 100%}#mapa-leaflet{height:360px}#marco-matriz{height:420px}}
+</style>
+</head>
+<body>
+<nav>
+<a href="venta.html" class="nav-item"><i class="fas fa-cash-register"></i><span>Venta</span></a>
+<a href="inventario.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventario</span></a>
+<a href="sucursales.html" class="nav-item"><i class="fas fa-network-wired"></i><span>Sucursales</span></a>
+<a href="pedidos.html" class="nav-item"><i class="fas fa-truck-loading"></i><span>Pedidos</span></a>
+<a href="prestamos.html" class="nav-item"><i class="fas fa-handshake"></i><span>Préstamos</span></a>
+<a href="usuarios.html" class="nav-item"><i class="fas fa-user-shield"></i><span>Usuarios</span></a>
+<a href="mapa.html" class="nav-item active"><i class="fas fa-map-marked-alt"></i><span>Mapa</span></a>
+<a href="matriz.html" class="nav-item"><i class="fas fa-server"></i><span>Matriz</span></a>
+<a href="reportes.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reportes</span></a>
+</nav>
+
+<main>
+<div class="top">
+    <div>
+        <h2 style="margin:0"><i class="fas fa-map-marked-alt" style="color:var(--accent)"></i> Torre de Control y Geolocalización GPS</h2>
+        <small style="color:var(--text-muted)">Red de 9 sucursales en Ciudad Victoria · <span id="suc-actual"></span></small>
+    </div>
+    <div class="badge" id="estado">🟡 Sin comprobar</div>
+</div>
+
+<div class="grid">
+    <div class="card"><h3>SEDES GEOLOCALIZADAS</h3><div class="big" id="k-sedes" style="color:var(--info)">— / 9</div></div>
+    <div class="card"><h3>EQUIPOS ACTIVOS (HEARTBEAT)</h3><div class="big" id="k-activos" style="color:var(--success)">—</div></div>
+    <div class="card"><h3>SUCURSAL MÁS CERCANA A MATRIZ</h3><div class="big" id="k-cercana" style="color:var(--warning)">—</div></div>
+    <div class="card"><h3>RADIO DE COBERTURA</h3><div class="big" id="k-radio" style="color:#a78bfa">—</div></div>
+</div>
+
+<div class="actions">
+    <button class="primary" onclick="cargar(true)"><i class="fas fa-sync"></i> Actualizar telemetría</button>
+    <button class="ok" onclick="abrirTorre()"><i class="fas fa-external-link-alt"></i> Abrir Torre de Control interactiva (/mapa)</button>
+    <button onclick="rutaMatrizAMi()"><i class="fas fa-route"></i> Ruta Matriz → mi sucursal (Google Maps)</button>
+    <button onclick="exportarCSV()"><i class="fas fa-file-csv"></i> Exportar tabla GPS (CSV)</button>
+</div>
+
+<div id="aviso" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:8px;border:1px solid var(--warning);background:rgba(227,160,8,.1);font-size:.82rem;color:var(--warning)"></div>
+
+<div class="tabs">
+    <div class="tab active" id="tab-local" onclick="verTab('local')"><i class="fas fa-map"></i> Mapa de la red</div>
+    <div class="tab" id="tab-torre" onclick="verTab('torre')"><i class="fas fa-satellite-dish"></i> Torre de Control (Matriz)</div>
+</div>
+
+<div class="panel" id="vista-local"><div class="panel-body">
+    <div id="mapa-leaflet"></div>
+    <div style="font-size:.74rem;color:var(--text-muted);margin-top:8px"><span class="dot" style="background:#10b981"></span>En línea &nbsp; <span class="dot" style="background:#3b82f6"></span>En espera de conexión &nbsp; <span class="dot" style="background:#a855f7"></span>Mi sucursal &nbsp; · Toca un pin para ver detalles y trazar la ruta.</div>
+</div></div>
+
+<div class="panel" id="vista-torre" style="display:none"><div class="panel-body">
+    <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px">Vista web de la Matriz (HTML5 + Leaflet en modo oscuro). Si ngrok muestra una pantalla de aviso, pulsa <b>Visit Site</b>; si no carga dentro de la página, usa el botón "Abrir Torre de Control".</div>
+    <iframe id="marco-matriz" title="Torre de Control - Matriz" loading="lazy"></iframe>
+</div></div>
+
+<div class="two">
+    <div class="panel"><div class="panel-title"><span><i class="fas fa-list-ol"></i> Ranking de cercanía</span></div><div class="panel-body" id="ranking">Cargando...</div></div>
+
+    <div class="panel"><div class="panel-title"><span><i class="fas fa-crosshairs"></i> Configurar / actualizar GPS de mi sucursal</span></div><div class="panel-body">
+        <label>Sucursal</label>
+        <select id="g-suc" disabled></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label>Latitud GPS</label><input id="g-lat" type="number" step="any" placeholder="23.7790"></div>
+            <div><label>Longitud GPS</label><input id="g-lon" type="number" step="any" placeholder="-99.1610"></div>
+        </div>
+        <label>Dirección / referencia</label>
+        <input id="g-dir" placeholder="Libramiento Naciones Unidas #1840">
+        <div class="actions" style="margin:14px 0 0 0">
+            <button onclick="usarGPSDispositivo()"><i class="fas fa-location-arrow"></i> Usar GPS de este dispositivo</button>
+            <button class="warn" id="btn-guardar" onclick="guardarGPS()"><i class="fas fa-save"></i> Guardar coordenadas GPS</button>
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:8px">Se envía por <code>POST /api/sucursales/ubicacion</code>; la Matriz recalcula tu distancia en km automáticamente.</div>
+    </div></div>
+</div>
+
+<div class="panel"><div class="panel-title"><span><i class="fas fa-table"></i> Sucursales y coordenadas GPS</span><small style="color:var(--text-muted)" id="actualizado"></small></div>
+<div class="panel-body table-wrap"><table>
+<thead><tr><th>ID</th><th>Sucursal / Equipo</th><th>Dirección / Zona</th><th>Coordenadas GPS</th><th>Dist. a Matriz</th><th>Tiempo est.</th><th>Estado en red</th><th>Ruta</th></tr></thead>
+<tbody id="tabla"><tr><td colspan="8" style="text-align:center;color:var(--text-muted)">Cargando...</td></tr></tbody>
+</table></div></div>
+</main>
+
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script>
+const TEMA = { background: '#24262d', color: '#e5e7eb' };
+let GEO = null, mapa = null, capa = null, torreCargada = false;
+
+document.getElementById('suc-actual').textContent = SUCURSAL_ACTUAL.nombre + ' (EQUIPO-0' + SUCURSAL_ACTUAL.id + ')';
+document.getElementById('g-suc').innerHTML = `<option>${SUCURSAL_ACTUAL.id} - ${_escHtml(SUCURSAL_ACTUAL.nombre)}</option>`;
+
+function estado(texto, color) { document.getElementById('estado').innerHTML = `<span style="color:${color}">●</span> ${texto}`; }
+function todas() { return GEO ? [GEO.matriz, ...GEO.sucursales] : []; }
+function fmtKm(n) { return Number.isFinite(n) ? n.toFixed(2) + ' km' : '—'; }
+function esMia(s) { return s.id_sucursal === Number(SUCURSAL_ACTUAL.id); }
+
+function colorPin(s) {
+    if (esMia(s)) return '#a855f7';
+    if (s.en_linea || s.id_sucursal === MATRIZ_ID) return '#10b981';
+    return '#3b82f6';
+}
+
+function iniciarMapa() {
+    mapa = L.map('mapa-leaflet', { zoomControl: true }).setView([23.7480, -99.1500], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(mapa);
+    capa = L.layerGroup().addTo(mapa);
+}
+
+function dibujarMapa() {
+    if (!mapa) iniciarMapa();
+    capa.clearLayers();
+    const m = GEO.matriz;
+    const puntos = [];
+
+    const radio = Math.max(0, ...GEO.sucursales.map(s => s.distancia_matriz_km || 0));
+    if (radio > 0) L.circle([m.latitud, m.longitud], { radius: radio * 1000, color: '#10b981', weight: 1, dashArray: '6 6', fillOpacity: .03 }).addTo(capa);
+
+    GEO.sucursales.forEach(s => {
+        if (!Number.isFinite(s.latitud)) return;
+        L.polyline([[m.latitud, m.longitud], [s.latitud, s.longitud]], { color: s.en_linea ? '#10b981' : '#3b82f6', weight: 1.5, opacity: .55, dashArray: '4 6' }).addTo(capa);
+    });
+
+    todas().forEach(s => {
+        if (!Number.isFinite(s.latitud) || !Number.isFinite(s.longitud)) return;
+        puntos.push([s.latitud, s.longitud]);
+        const esM = s.id_sucursal === MATRIZ_ID;
+        const mk = L.circleMarker([s.latitud, s.longitud], {
+            radius: esM ? 13 : (esMia(s) ? 11 : 9), color: '#fff', weight: 2, fillColor: colorPin(s), fillOpacity: 1
+        }).addTo(capa);
+        mk.bindTooltip(esM ? 'MATRIZ' : `Eq.${s.id_sucursal} (${fmtKm(s.distancia_matriz_km)})`, { permanent: true, direction: 'top', offset: [0, -8] });
+        const ruta = esM ? '' : `<br><a href="${_escHtml(s.url_google_maps || geoUrlGoogleMaps(m, s))}" target="_blank" rel="noopener">🗺️ Trazar ruta desde Matriz</a>` +
+            (esMia(s) ? '' : `<br><a href="${_escHtml(geoUrlGoogleMaps(geoMiUbicacion() || m, s))}" target="_blank" rel="noopener">📍 Ruta desde mi sucursal</a>`);
+        mk.bindPopup(`<b>${_escHtml(s.nombre)}</b>${esMia(s) ? ' <i>(mi sucursal)</i>' : ''}<br>${_escHtml(s.direccion)}<br>GPS: ${s.latitud.toFixed(4)}, ${s.longitud.toFixed(4)}<br>Distancia a Matriz: <b>${esM ? 'Sede' : fmtKm(s.distancia_matriz_km) + ' (~' + s.tiempo_estimado_min + ' min)'}</b><br>${_escHtml(s.estado_conexion)}${ruta}`);
+    });
+    if (puntos.length) mapa.fitBounds(puntos, { padding: [40, 40] });
+}
+
+function dibujarKPIs() {
+    const suc = GEO.sucursales;
+    const conGps = todas().filter(s => Number.isFinite(s.latitud) && Number.isFinite(s.longitud)).length;
+    const activos = todas().filter(s => s.en_linea || s.id_sucursal === MATRIZ_ID).length;
+    document.getElementById('k-sedes').textContent = `${conGps} / 9`;
+    document.getElementById('k-activos').textContent = `${activos} / 9 Activas`;
+    const r = GEO.ranking[0];
+    document.getElementById('k-cercana').textContent = r ? `Eq. ${r.id_sucursal} (${Number(r.distancia_matriz_km).toFixed(2)} km)` : '—';
+    const max = Math.max(0, ...suc.map(s => s.distancia_matriz_km || 0));
+    document.getElementById('k-radio').textContent = max ? `${max.toFixed(2)} km máx` : '—';
+}
+
+function dibujarTabla() {
+    const filas = [GEO.matriz, ...GEO.sucursales.slice().sort((a, b) => (a.distancia_matriz_km ?? 99) - (b.distancia_matriz_km ?? 99))];
+    document.getElementById('tabla').innerHTML = filas.map(s => {
+        const esM = s.id_sucursal === MATRIZ_ID;
+        const on = s.en_linea || esM;
+        const ruta = esM ? '<small style="color:var(--text-muted)">Sede</small>'
+            : `<a class="btn sm primary" href="${_escHtml(s.url_google_maps || geoUrlGoogleMaps(GEO.matriz, s))}" target="_blank" rel="noopener"><i class="fas fa-route"></i> Ruta</a>`;
+        return `<tr class="${esMia(s) ? 'yo' : ''}">
+            <td>${s.id_sucursal}</td>
+            <td><b>${_escHtml(s.nombre)}</b>${esMia(s) ? ' <small style="color:var(--accent)">(yo)</small>' : ''}</td>
+            <td>${_escHtml(s.zona ? s.zona + ' · ' : '')}${_escHtml(s.direccion)}</td>
+            <td>${Number.isFinite(s.latitud) ? s.latitud.toFixed(4) + ', ' + s.longitud.toFixed(4) : '—'}</td>
+            <td>${esM ? '0.00 km (Sede)' : fmtKm(s.distancia_matriz_km)}</td>
+            <td>${esM ? '0 min' : '~' + s.tiempo_estimado_min + ' min'}</td>
+            <td><span class="dot ${on ? 'on' : 'off'}"></span>${_escHtml(s.estado_conexion)}</td>
+            <td>${ruta}</td></tr>`;
+    }).join('');
+}
+
+function dibujarRanking() {
+    document.getElementById('ranking').innerHTML = GEO.ranking.map((r, i) =>
+        `<div class="rank-row"><span><b>${i + 1}.</b> ${_escHtml(r.nombre)}${Number(r.id_sucursal) === Number(SUCURSAL_ACTUAL.id) ? ' <small style="color:var(--accent)">(yo)</small>' : ''}</span><span><b>${Number(r.distancia_matriz_km).toFixed(2)} km</b> <small style="color:var(--text-muted)">~${r.tiempo_estimado_min} min</small></span></div>`
+    ).join('') || '<span style="color:var(--text-muted)">Sin datos.</span>';
+}
+
+function llenarFormulario() {
+    const mi = geoMiUbicacion();
+    const s = GEO && GEO.sucursales.find(x => esMia(x));
+    const src = s && Number.isFinite(s.latitud) ? s : mi;
+    if (!src) return;
+    if (!document.getElementById('g-lat').value) document.getElementById('g-lat').value = src.latitud;
+    if (!document.getElementById('g-lon').value) document.getElementById('g-lon').value = src.longitud;
+    if (!document.getElementById('g-dir').value) document.getElementById('g-dir').value = src.direccion || '';
+}
+
+async function cargar(avisar = false) {
+    estado('Consultando a la Matriz...', 'var(--warning)');
+    GEO = await apiUbicacionesMatriz();
+    const aviso = document.getElementById('aviso');
+    if (GEO.origen === 'matriz') {
+        estado('Matriz conectada', 'var(--success)');
+        aviso.style.display = 'none';
+    } else {
+        estado('Sin conexión', 'var(--danger)');
+        aviso.style.display = 'block';
+        aviso.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${_escHtml(GEO.errorRed || 'Sin conexión')} Se muestran ${GEO.origen === 'cache' ? 'los últimos datos guardados' : 'las coordenadas precargadas del Anexo (distancias calculadas con Haversine)'}.`;
+    }
+    document.getElementById('actualizado').textContent = GEO.actualizado ? 'Actualizado ' + new Date(GEO.actualizado).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Datos locales';
+    dibujarKPIs(); dibujarTabla(); dibujarRanking(); dibujarMapa(); llenarFormulario();
+    if (avisar && GEO.origen === 'matriz') Swal.fire({ icon: 'success', title: 'Telemetría actualizada', timer: 1200, showConfirmButton: false, ...TEMA });
+}
+
+function verTab(t) {
+    document.getElementById('tab-local').classList.toggle('active', t === 'local');
+    document.getElementById('tab-torre').classList.toggle('active', t === 'torre');
+    document.getElementById('vista-local').style.display = t === 'local' ? '' : 'none';
+    document.getElementById('vista-torre').style.display = t === 'torre' ? '' : 'none';
+    if (t === 'local' && mapa) setTimeout(() => { mapa.invalidateSize(); }, 80);
+    if (t === 'torre' && !torreCargada) { document.getElementById('marco-matriz').src = MATRIZ_API_BASE + '/mapa'; torreCargada = true; }
+}
+
+function abrirTorre() { window.open(MATRIZ_API_BASE + '/mapa', '_blank', 'noopener'); }
+
+function rutaMatrizAMi() {
+    if (!GEO) return;
+    const mi = GEO.sucursales.find(esMia) || geoMiUbicacion();
+    if (!mi) return Swal.fire({ icon: 'info', title: 'Sin ubicación', text: 'Guarda primero las coordenadas de tu sucursal.', ...TEMA });
+    window.open(geoUrlGoogleMaps(GEO.matriz, mi), '_blank', 'noopener');
+}
+
+function usarGPSDispositivo() {
+    if (!navigator.geolocation) return Swal.fire({ icon: 'error', title: 'Sin GPS', text: 'Este navegador no permite obtener la ubicación.', ...TEMA });
+    navigator.geolocation.getCurrentPosition(
+        p => { document.getElementById('g-lat').value = p.coords.latitude.toFixed(6); document.getElementById('g-lon').value = p.coords.longitude.toFixed(6); },
+        e => Swal.fire({ icon: 'warning', title: 'No se pudo obtener la ubicación', text: e.message, ...TEMA }),
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
+async function guardarGPS() {
+    const btn = document.getElementById('btn-guardar'); btn.disabled = true;
+    const out = await apiActualizarUbicacionMatriz(SUCURSAL_ACTUAL.id,
+        document.getElementById('g-lat').value, document.getElementById('g-lon').value, document.getElementById('g-dir').value);
+    btn.disabled = false;
+    if (out.error) return Swal.fire({ icon: 'error', title: 'No se guardó', text: out.mensaje, ...TEMA });
+    await Swal.fire({ icon: 'success', title: 'Ubicación actualizada', text: out.mensaje || 'La Matriz recalculó tu distancia.', ...TEMA });
+    document.getElementById('g-lat').value = ''; document.getElementById('g-lon').value = ''; document.getElementById('g-dir').value = '';
+    cargar();
+}
+
+function exportarCSV() {
+    if (!GEO) return;
+    const enc = ['ID', 'Sucursal', 'Dirección', 'Latitud', 'Longitud', 'Distancia a Matriz (km)', 'Tiempo estimado (min)', 'Estado'];
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const filas = todas().map(s => [s.id_sucursal, s.nombre, s.direccion, s.latitud, s.longitud, s.distancia_matriz_km ?? 0, s.tiempo_estimado_min ?? 0, s.estado_conexion].map(q).join(','));
+    const blob = new Blob(['\uFEFF' + [enc.map(q).join(','), ...filas].join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ubicaciones_gps_sucursales.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+cargar();
+setInterval(() => cargar(), 60000);
+</script>
+</body>
+</html>

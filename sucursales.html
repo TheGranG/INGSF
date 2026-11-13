@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroStock - Red de Sucursales</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --bg-dark: #1a1c23; --panel-dark: #24262d; --input-bg: #2d2f36; --accent: #7e3af2; --text-main: #e5e7eb; --text-muted: #9ca3af; --success: #0e9f6e; --danger: #f05252; --warning: #e3a008; --info: #3f83f8; --border: #374151; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-dark); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+        nav { width: 100px; background: var(--panel-dark); display: flex; flex-direction: column; align-items: center; padding-top: 20px; border-right: 1px solid var(--border); flex-shrink: 0; }
+        .nav-item { width: 100%; padding: 18px 0; display: flex; flex-direction: column; align-items: center; color: var(--text-muted); cursor: pointer; transition: 0.2s; border-left: 3px solid transparent; text-decoration: none; }
+        .nav-item:hover, .nav-item.active { color: var(--accent); background-color: rgba(126, 58, 242, 0.1); border-left: 3px solid var(--accent); }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 8px; }
+        .nav-item span { font-size: 0.7rem; font-weight: 600; text-align: center; }
+        
+        .main-content { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; overflow-y: auto; position: relative;}
+        
+        .top-search-container { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; background: var(--panel-dark); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); position: sticky; top: 0; z-index: 50; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
+        .search-bar-wrapper { flex: 1; position: relative; }
+        .search-bar-wrapper i { position: absolute; left: 15px; top: 15px; color: var(--text-muted); font-size: 1.2rem;}
+        .search-bar-main { width: 100%; padding: 15px 15px 15px 45px; background: var(--input-bg); border: 1px solid var(--border); color: white; border-radius: 8px; font-size: 1.1rem; outline: none; box-sizing: border-box; transition: 0.2s;}
+        .search-bar-main:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(126, 58, 242, 0.2); }
+        .user-badge { display: flex; align-items: center; gap: 10px; background: var(--bg-dark); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); font-weight: bold;}
+
+        #resultados-busqueda { 
+            display: none; 
+            position: absolute; 
+            top: 100px;
+            left: 25px; 
+            right: 25px; 
+            z-index: 1000; 
+            background: var(--panel-dark); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.7); 
+            max-height: 60vh; 
+            overflow-y: auto; 
+        }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 25px;}
+        .sucursal-card { background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: 0.2s; }
+        .sucursal-card:hover { border-color: var(--accent); }
+        .badge-online { background: rgba(14, 159, 110, 0.1); color: var(--success); padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: bold; border: 1px solid var(--success); display: inline-flex; align-items: center; gap: 5px; width: fit-content;}
+
+        .cotizador-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .panel-lista { flex: 2; background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .panel-evaluacion { flex: 1; display: flex; flex-direction: column; background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        
+        .panel-header { padding: 15px 20px; background: #2d2f36; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: bold;}
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #2d2f36; padding: 12px 15px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.9rem; }
+        .sku-tag { background: var(--bg-dark); padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; color: var(--accent); border: 1px solid var(--border);}
+        
+        .btn-add { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;}
+        .btn-add:hover { background: #6c2bd9; }
+        .btn-remove { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+        
+        .input-qty { width: 60px; padding: 6px; background: var(--bg-dark); border: 1px solid var(--border); color: white; border-radius: 4px; text-align: center; }
+
+        .eval-card { padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .eval-card:last-child { border-bottom: none; }
+        .eval-card.perfect { border-left: 4px solid var(--success); background: rgba(14, 159, 110, 0.05); }
+        .eval-card.partial { border-left: 4px solid var(--warning); background: rgba(227, 160, 8, 0.05); }
+    
+
+        /* ---- Consulta de Red (pestañas, formularios, tarjetas) ---- */
+        .tabs-red { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-red { background: var(--input-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .tab-red:hover { border-color: var(--accent); color: var(--accent); }
+        .tab-red.activa { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .table-container { background: var(--panel-dark); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
+        .kpi-row { display: flex; gap: 20px; margin-bottom: 20px; }
+        .kpi-card { background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; padding: 15px 20px; flex: 1; display: flex; align-items: center; gap: 15px; }
+        .kpi-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+        .barra-filtros { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .barra-filtros .input-red { flex: 1; min-width: 200px; }
+        .input-red { width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; font-size: 0.95rem; }
+        .input-red:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(126, 58, 242, 0.2); }
+
+        .form-fila { display: flex; gap: 12px; align-items: flex-end; padding: 15px 20px; flex-wrap: wrap; }
+        .form-fila .campo { flex: 1; min-width: 200px; }
+        .form-fila .campo.corto { flex: 0 0 150px; min-width: 120px; }
+        .form-fila label { display: block; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
+        .btn-grande { padding: 12px 18px; font-size: 0.9rem; white-space: nowrap; }
+
+        .stat-row { display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
+        .stat-chip { flex: 1; min-width: 140px; background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+        .stat-chip small { display: block; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+        .stat-chip b { font-size: 1.4rem; }
+
+        .reco-card { display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; background: rgba(14, 159, 110, 0.07); border: 1px solid var(--success); border-left: 5px solid var(--success); border-radius: 12px; padding: 16px 20px; margin-bottom: 15px; }
+        .reco-card.aviso { background: rgba(227, 160, 8, 0.07); border-color: var(--warning); }
+        .reco-card.malo { background: rgba(240, 82, 82, 0.07); border-color: var(--danger); }
+        .reco-card small { display: block; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+        .nota-matriz { background: var(--panel-dark); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .nota-matriz a { color: var(--accent); font-weight: bold; text-decoration: none; }
+
+        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid transparent; }
+        .badge-warn { background: rgba(227, 160, 8, 0.1); color: var(--warning); padding: 4px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: bold; border: 1px solid var(--warning); display: inline-flex; align-items: center; gap: 5px; width: fit-content; }
+        .fila-mejor { background: rgba(14, 159, 110, 0.06); }
+
+/* ============================================================
+   RESPONSIVE ELECTROSTOCK — escritorio + móvil
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+button,input,select{max-width:100%}
+@media (max-width:1100px) and (min-width:701px){
+  nav{width:86px}
+  .main-content,.contenido-principal{padding:18px}
+  .kpi-row{gap:12px}
+  .kpi-card{padding:12px}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{padding:12px 15px}
+}
+@media (max-width:700px){
+  html,body{width:100%;min-width:0;height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  nav{order:2;width:100%;height:68px;min-height:68px;padding:0;display:flex;flex-direction:row;justify-content:flex-start;align-items:stretch;border-right:0;border-top:1px solid var(--border,var(--borde,#374151));overflow-x:auto;overflow-y:hidden;z-index:100}
+  .nav-item,.opcion-nav{flex:0 0 72px;width:72px;min-width:72px;height:68px;padding:7px 2px;display:flex;justify-content:center;gap:3px;border-left:0!important;border-top:3px solid transparent}
+  .nav-item:hover,.nav-item.active,.opcion-nav:hover,.opcion-nav.activa{border-left:0!important;border-top:3px solid var(--accent,var(--acento,#7e3af2))}
+  .nav-item i,.opcion-nav i{font-size:1rem;margin-bottom:2px}
+  .nav-item span,.opcion-nav span{font-size:.56rem;line-height:1.1;white-space:nowrap}
+  .main-content,.contenido-principal{order:1;width:100%;min-width:0;height:calc(100vh - 68px);flex:1 1 auto;padding:10px;overflow-x:hidden;overflow-y:auto}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{width:100%;padding:10px;margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:stretch}
+  .top-bar>*,.barra-superior>*,.header-actions>*,.top-search-container>*{min-width:0}
+  .top-bar-right{width:100%;flex-wrap:wrap;gap:7px}
+  .user-badge{max-width:100%;font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  h1{font-size:1.2rem!important} h2{font-size:1.05rem!important} h3{font-size:.92rem!important}
+  .search-container,.contenedor-busqueda{width:100%;flex-wrap:wrap}
+  .search-container>*{width:100%;flex:1 1 100%}
+  .search-bar,.campo-busqueda,.search-bar-main,.select-period{width:100%;min-width:0}
+  .kpi-row{display:grid;grid-template-columns:1fr;gap:8px}
+  .kpi-card{min-width:0;padding:10px}
+  .cards-grid{grid-template-columns:1fr!important;gap:8px}
+  .sucursal-card{min-width:0;padding:10px}
+  .cotizador-layout,.distribucion-venta{display:flex;flex-direction:column;width:100%;height:auto;min-height:0;gap:10px;overflow:visible}
+  .panel-lista,.panel-evaluacion,.columna-inventario,.columna-ticket{width:100%!important;min-width:0;max-width:none;flex:none}
+  .columna-inventario{min-height:280px}
+  .columna-ticket{min-height:260px}
+  .table-container,.contenedor-tabla,.panel-lista,#resultados-busqueda{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;min-width:600px}
+  th{padding:9px 8px;font-size:.66rem}
+  td{padding:8px;font-size:.78rem;white-space:nowrap}
+  .panel-header{padding:9px 10px;gap:7px;flex-wrap:wrap}
+  .stepper{gap:4px}
+  .input-qty{width:48px}
+  canvas,svg,img{max-width:100%}
+  #resultados-busqueda{left:10px!important;right:10px!important;top:85px!important;width:calc(100% - 20px)}
+}
+@media (max-width:380px){
+  .main-content,.contenido-principal{padding:7px}
+  nav,.nav-item,.opcion-nav{height:62px;min-height:62px}
+  .nav-item,.opcion-nav{flex-basis:64px;min-width:64px;width:64px}
+  .nav-item span,.opcion-nav span{font-size:.51rem}
+}
+
+@media (max-width:700px){
+  .tabs-red{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .tab-red{flex:0 0 auto;padding:9px 12px;font-size:.78rem}
+  .form-fila{padding:10px}
+  .form-fila .campo,.form-fila .campo.corto{flex:1 1 100%;min-width:0}
+  .form-fila .btn-grande{width:100%}
+  .top-search-container{position:static}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat-chip{min-width:0;padding:8px 10px}
+  .stat-chip small{font-size:.58rem}
+  .stat-chip b{font-size:1.05rem}
+  .reco-card{padding:12px}
+  .reco-card .btn-add{width:100%}
+  .barra-filtros{flex-direction:column;align-items:stretch}
+  .top-search-container h2{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+
+    <nav>
+        <a href="venta.html" class="nav-item"><i class="fas fa-cash-register"></i><span>Venta</span></a>
+        <a href="inventario.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventario</span></a>
+        <a href="sucursales.html" class="nav-item active"><i class="fas fa-network-wired"></i><span>Sucursales</span></a>
+        <a href="pedidos.html" class="nav-item"><i class="fas fa-truck-loading"></i><span>Pedidos</span></a>
+        <a href="prestamos.html" class="nav-item"><i class="fas fa-handshake"></i><span>Préstamos</span></a>
+        <a href="usuarios.html" class="nav-item"><i class="fas fa-user-shield"></i><span>Usuarios</span></a>
+        <a href="mapa.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Mapa</span></a>
+        <a href="matriz.html" class="nav-item"><i class="fas fa-server"></i><span>Matriz</span></a>
+        <a href="reportes.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reportes</span></a>
+    </nav>
+
+    <main class="main-content">
+        <div id="estado-matriz" style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;"></div>
+
+        <div class="top-search-container">
+            <h2 style="margin:0; font-size:1.3rem; flex:1;"><i class="fas fa-network-wired" style="color: var(--accent);"></i> Consulta de Red</h2>
+            <button class="btn-add btn-grande" onclick="actualizarRed()" style="width:auto;"><i class="fas fa-sync-alt"></i> Actualizar Red</button>
+            <div class="user-badge">
+                <i class="fas fa-user-circle" style="color: var(--accent);"></i>
+                <span id="usuario-nombre">Cargando...</span>
+            </div>
+        </div>
+
+        <div class="tabs-red">
+            <button class="tab-red activa" id="tab-matriz" onclick="cambiarTab('matriz')"><i class="fas fa-warehouse"></i> Inventario Matriz</button>
+            <button class="tab-red" id="tab-sucursales" onclick="cambiarTab('sucursales')"><i class="fas fa-store"></i> Otras Sucursales</button>
+            <button class="tab-red" id="tab-uno" onclick="cambiarTab('uno')"><i class="fas fa-search"></i> Un Producto</button>
+            <button class="tab-red" id="tab-varios" onclick="cambiarTab('varios')"><i class="fas fa-list-check"></i> Varios Productos</button>
+        </div>
+
+        <datalist id="lista-productos"></datalist>
+
+        <!-- ===== 1 y 2: Inventario de Matriz / otras sucursales ===== -->
+        <div id="vista-inventario">
+            <div class="barra-filtros">
+                <select id="sel-nodo" class="input-red" style="flex:0 0 260px; display:none;" onchange="prepararInventario()"></select>
+                <input type="text" id="filtro-inv" class="input-red" placeholder="Buscar producto en este inventario (SKU, nombre o marca)..." onkeyup="renderInventarioNodo()">
+            </div>
+            <h3 id="titulo-nodo" style="margin: 0 0 12px 0; font-size:1.05rem;"></h3>
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(14, 159, 110, 0.1); color: var(--success);"><i class="fas fa-box-open"></i></div>
+                    <div><h4 style="margin:0; font-size:0.75rem; color:var(--text-muted);">Total de Piezas</h4><p id="kpi-piezas" style="margin:2px 0 0 0; font-size:1.3rem; font-weight:bold;">0</p></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(126, 58, 242, 0.1); color: var(--accent);"><i class="fas fa-dollar-sign"></i></div>
+                    <div><h4 style="margin:0; font-size:0.75rem; color:var(--text-muted);">Valor Estimado</h4><p id="kpi-valor" style="margin:2px 0 0 0; font-size:1.3rem; font-weight:bold;">$0.00</p></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: rgba(240, 82, 82, 0.1); color: var(--danger);"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div><h4 style="margin:0; font-size:0.75rem; color:var(--text-muted);">Productos Agotados</h4><p id="kpi-agotados" style="margin:2px 0 0 0; font-size:1.3rem; font-weight:bold;">0</p></div>
+                </div>
+            </div>
+            <div id="fuente-inv" style="margin-bottom:12px;"></div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr><th>SKU</th><th>Producto / Marca</th><th>Precio</th><th style="text-align:center;">Stock</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody id="tabla-inv"><tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Cargando inventario de la red...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== 3: Existencia de UN producto ===== -->
+        <div id="vista-uno" style="display:none;">
+            <div class="panel-lista" style="margin-bottom:20px;">
+                <div class="panel-header"><span><i class="fas fa-search"></i> ¿Qué producto busca el cliente?</span></div>
+                <div class="form-fila">
+                    <div class="campo">
+                        <label>Producto</label>
+                        <input type="text" id="uno-producto" class="input-red" list="lista-productos" placeholder="SKU o nombre (ej. HDMI)" onkeydown="if(event.key==='Enter') buscarUno()">
+                    </div>
+                    <div class="campo corto">
+                        <label>Cantidad que pide</label>
+                        <input type="number" id="uno-cant" class="input-red" min="1" value="1" onkeydown="if(event.key==='Enter') buscarUno()">
+                    </div>
+                    <button class="btn-add btn-grande" onclick="buscarUno()"><i class="fas fa-satellite-dish"></i> Buscar en la red</button>
+                </div>
+            </div>
+            <div id="resultado-uno"></div>
+        </div>
+
+        <!-- ===== 4: Existencia de VARIOS productos ===== -->
+        <div id="vista-varios" style="display:none;">
+            <div class="cotizador-layout">
+                <div class="panel-lista">
+                    <div class="panel-header">
+                        <span>Lista de Requerimientos del Cliente</span>
+                        <button class="btn-add" style="background:var(--danger); padding:6px 12px;" onclick="limpiarVarios()">Limpiar Todo</button>
+                    </div>
+                    <div class="form-fila">
+                        <div class="campo">
+                            <label>Producto</label>
+                            <input type="text" id="var-producto" class="input-red" list="lista-productos" placeholder="SKU o nombre" onkeydown="if(event.key==='Enter') agregarVarios()">
+                        </div>
+                        <div class="campo corto">
+                            <label>Cantidad</label>
+                            <input type="number" id="var-cant" class="input-red" min="1" value="1" onkeydown="if(event.key==='Enter') agregarVarios()">
+                        </div>
+                        <button class="btn-add btn-grande" onclick="agregarVarios()"><i class="fas fa-plus"></i> Agregar</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>SKU</th><th>Producto</th><th style="text-align:center;">Pide</th><th style="text-align:center;">Tengo</th><th style="text-align:center;">Faltan</th><th>Acción</th></tr>
+                        </thead>
+                        <tbody id="tabla-varios">
+                            <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">Agrega productos para armar el paquete.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel-evaluacion" id="panel-viabilidad">
+                    <div class="panel-header" style="background:var(--bg-dark);">
+                        <span style="color:var(--info);"><i class="fas fa-satellite-dish"></i> Viabilidad de Surtido</span>
+                    </div>
+                    <div style="text-align:center; padding:30px 20px; color:var(--text-muted);">
+                        <i class="fas fa-box-open" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i><br>
+                        Agrega productos a la lista para ver qué sucursal puede surtir el pedido completo.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script>
+        const TEMA = { background: '#24262d', color: '#e5e7eb' };
+        let NODOS = {};            // id de sucursal -> inventario (GET /api/inventario?sucursal=ID)
+        let tabActual = 'matriz';
+        let ultimaBusquedaUno = null;
+        let listaVarios = [];      // [{ sku, nombre, cant }]
+
+        document.getElementById('usuario-nombre').innerText = `${OPERADOR_ACTUAL} (${SUCURSAL_ACTUAL.nombre})`;
+
+        function hora(iso) { return iso ? new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''; }
+
+        function badgeFuente(origen, actualizado) {
+            if (origen === 'matriz') return `<span class="badge-online"><i class="fas fa-circle" style="font-size:0.4rem;"></i> EN VIVO · Matriz · ${hora(actualizado)}</span>`;
+            if (origen === 'cache') return `<span class="badge-warn"><i class="fas fa-exclamation-triangle"></i> SIN CONEXIÓN · datos guardados (${hora(actualizado)})</span>`;
+            return `<span class="badge-warn"><i class="fas fa-exclamation-triangle"></i> SIN CONEXIÓN · datos locales de demostración</span>`;
+        }
+
+        function llenarDatalist() {
+            document.getElementById('lista-productos').innerHTML = apiProductos()
+                .map(p => `<option value="${_escHtml(p.sku_id)} — ${_escHtml(p.nombre_pieza)}"></option>`).join('');
+        }
+
+        async function resolverProducto(texto) {
+            const t = (texto || '').trim().toLowerCase();
+            if (!t) { Swal.fire({ icon: 'info', title: 'Escribe un producto', text: 'Indica el SKU o el nombre del producto.', ...TEMA }); return null; }
+            const cat = apiProductos();
+            let m = cat.filter(p => `${p.sku_id} — ${p.nombre_pieza}`.toLowerCase() === t || p.sku_id.toLowerCase() === t);
+            if (m.length === 1) return m[0];
+            m = cat.filter(p => p.sku_id.toLowerCase().includes(t) || p.nombre_pieza.toLowerCase().includes(t));
+            if (m.length === 1) return m[0];
+            if (m.length === 0) { Swal.fire({ icon: 'info', title: 'No encontrado', text: `No hay productos que coincidan con "${texto}".`, ...TEMA }); return null; }
+            const opciones = {};
+            m.slice(0, 15).forEach(p => { opciones[p.sku_id] = `${p.sku_id} — ${p.nombre_pieza}`; });
+            const r = await Swal.fire({ title: '¿Cuál producto?', input: 'select', inputOptions: opciones, inputPlaceholder: 'Selecciona...', showCancelButton: true, confirmButtonColor: '#7e3af2', ...TEMA });
+            if (!r.isConfirmed || !r.value) return null;
+            return cat.find(p => p.sku_id === r.value) || null;
+        }
+
+        // ---------- Pestañas ----------
+        function cambiarTab(t) {
+            tabActual = t;
+            ['matriz', 'sucursales', 'uno', 'varios'].forEach(x => document.getElementById('tab-' + x).classList.toggle('activa', x === t));
+            const esInv = (t === 'matriz' || t === 'sucursales');
+            document.getElementById('vista-inventario').style.display = esInv ? 'block' : 'none';
+            document.getElementById('vista-uno').style.display = (t === 'uno') ? 'block' : 'none';
+            document.getElementById('vista-varios').style.display = (t === 'varios') ? 'block' : 'none';
+            if (esInv) prepararInventario();
+        }
+
+        async function actualizarRed() {
+            if (tabActual === 'uno') { if (ultimaBusquedaUno) ejecutarUno(ultimaBusquedaUno.p, ultimaBusquedaUno.cant, true); else buscarUno(); return; }
+            if (tabActual === 'varios') { evaluarVarios(true); return; }
+            await cargarNodo(idNodoActual(), true);
+        }
+
+        // ---------- 1 y 2: inventario de la Matriz / de otra sucursal (una sola petición por consulta) ----------
+        function idNodoActual() { return (tabActual === 'matriz') ? MATRIZ_ID : Number(document.getElementById('sel-nodo').value); }
+
+        function llenarSelectorNodos() {
+            const sel = document.getElementById('sel-nodo');
+            if (sel.options.length) return;
+            const ids = SUCURSALES_RED.map(s => s.id).filter(id => id !== MATRIZ_ID && id !== Number(SUCURSAL_ACTUAL.id));
+            sel.innerHTML = ids.map(id => `<option value="${id}">EQUIPO-0${id} · Sucursal ${id}</option>`).join('');
+        }
+
+        async function prepararInventario() {
+            document.getElementById('sel-nodo').style.display = (tabActual === 'sucursales') ? 'block' : 'none';
+            llenarSelectorNodos();
+            await cargarNodo(idNodoActual(), false);
+        }
+
+        async function cargarNodo(id, forzar) {
+            document.getElementById('tabla-inv').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Consultando a la Matriz...</td></tr>';
+            const res = await apiRedInventarioSucursal(id, forzar);
+            NODOS[id] = res;
+            const opt = document.querySelector(`#sel-nodo option[value="${id}"]`);
+            if (opt && res.nombre) opt.textContent = `EQUIPO-0${id} · ${res.nombre}`;
+            if (idNodoActual() === id) renderInventarioNodo();   // si ya cambió de pestaña, no se pinta una respuesta vieja
+            mostrarEstadoMatriz();
+        }
+
+        function renderInventarioNodo() {
+            const id = idNodoActual();
+            const nodo = NODOS[id];
+            if (!nodo) return;
+            const filtro = document.getElementById('filtro-inv').value.toLowerCase().trim();
+            const tbody = document.getElementById('tabla-inv');
+
+            document.getElementById('titulo-nodo').innerHTML = `<i class="fas ${id === MATRIZ_ID ? 'fa-warehouse' : 'fa-store'}" style="color:var(--accent);"></i> ${_escHtml(nodo.nombre)} <small style="color:var(--text-muted); font-weight:normal;">(EQUIPO-0${id})</small>`;
+            document.getElementById('fuente-inv').innerHTML = badgeFuente(nodo.origen, nodo.actualizado)
+                + (nodo.errorRed ? ` <span style="font-size:.72rem;color:var(--text-muted);">${_escHtml(nodo.errorRed)}</span>` : '')
+                + (nodo.vacio ? `<div class="reco-card aviso" style="display:block; margin-top:10px;"><small>Sin inventario registrado</small>La Matriz respondió, pero no tiene productos registrados para ${_escHtml(nodo.nombre)} (puede que aún no tenga inventario asignado).</div>` : '')
+                + (nodo.sinLectura ? `<div style="margin-top:10px;">${redAvisoSinLectura({ sinLectura: true, raw: nodo.raw, sku: 'sucursal ' + id, queBuscaba: 'productos' })}</div>` : '');
+
+            let piezas = 0, valor = 0, agotados = 0;
+            nodo.items.forEach(i => { piezas += i.stock; valor += i.stock * i.precio; if (i.stock === 0) agotados++; });
+            document.getElementById('kpi-piezas').innerText = piezas.toLocaleString('en-US');
+            document.getElementById('kpi-valor').innerText = '$' + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('kpi-agotados').innerText = agotados;
+
+            const filas = nodo.items.filter(i => !filtro || `${i.sku_id} ${i.nombre_pieza} ${i.marca}`.toLowerCase().includes(filtro));
+            if (!filas.length) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">${nodo.items.length ? 'No hay productos que coincidan.' : 'Sin productos para mostrar.'}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filas.map(i => {
+                let estado = '<span class="status-pill" style="border-color:var(--success); color:var(--success);">DISPONIBLE</span>';
+                let color = 'var(--text-main)';
+                if (i.stock === 0) { estado = '<span class="status-pill" style="border-color:var(--danger); color:var(--danger);">AGOTADO</span>'; color = 'var(--danger)'; }
+                else if (i.stock <= (i.minimo || 0)) { estado = '<span class="status-pill" style="border-color:var(--warning); color:var(--warning);">BAJO</span>'; }
+                return `<tr>
+                    <td><span class="sku-tag">${_escHtml(i.sku_id)}</span></td>
+                    <td><b>${_escHtml(i.nombre_pieza)}</b>${i.marca ? `<br><small style="color:var(--text-muted);">${_escHtml(i.marca)}</small>` : ''}</td>
+                    <td style="font-weight:bold;">$${i.precio.toFixed(2)}</td>
+                    <td style="text-align:center; font-weight:bold; font-size:1.1rem; color:${color};">${i.stock}</td>
+                    <td>${estado}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ---------- 3: un producto ----------
+        async function buscarUno() {
+            const p = await resolverProducto(document.getElementById('uno-producto').value);
+            if (!p) return;
+            const cant = parseInt(document.getElementById('uno-cant').value);
+            if (!cant || cant < 1) { Swal.fire({ icon: 'info', title: 'Cantidad inválida', text: 'Indica cuántas piezas pide el cliente.', ...TEMA }); return; }
+            document.getElementById('uno-producto').value = `${p.sku_id} — ${p.nombre_pieza}`;
+            ultimaBusquedaUno = { p, cant };
+            ejecutarUno(p, cant, true);
+        }
+
+        async function ejecutarUno(p, cant, forzar) {
+            const cont = document.getElementById('resultado-uno');
+            cont.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Consultando la red...</div>';
+            const res = await apiRedDisponibilidadSku(p.sku_id, forzar);
+            mostrarEstadoMatriz();
+            if (res.sinLectura) { cont.innerHTML = redAvisoSinLectura(res); return; }   // no afirmar "sin disponibilidad" si no se pudo leer
+
+            const mi = redMiStock(p.sku_id, res.filas);
+            const faltante = Math.max(0, cant - mi);
+            const rec = redRecomendarUno(res.filas, Math.max(1, faltante));
+            const nombreProd = _escHtml(p.nombre_pieza);
+
+            let html = `<div class="stat-row">
+                <div class="stat-chip"><small>El cliente pide</small><b>${cant} pz</b></div>
+                <div class="stat-chip"><small>Tienes en tu sucursal</small><b style="color:${mi >= cant ? 'var(--success)' : 'var(--warning)'};">${mi} pz</b></div>
+                <div class="stat-chip"><small>Te faltan</small><b style="color:${faltante ? 'var(--danger)' : 'var(--success)'};">${faltante} pz</b></div>
+            </div>
+            <div style="margin-bottom:15px;">${badgeFuente(res.origen, res.actualizado)}${res.errorRed ? ` <span style="font-size:.72rem;color:var(--text-muted);">${_escHtml(res.errorRed)}</span>` : ''}</div>`;
+
+            if (faltante === 0) {
+                html += `<div class="reco-card"><div><small>Tu sucursal cubre el pedido</small><div style="font-weight:bold; font-size:1.1rem;"><i class="fas fa-check-circle" style="color:var(--success);"></i> Tienes ${mi} pz de ${nombreProd}: no necesitas pedir a otra sucursal.</div></div></div>`;
+            } else if (rec.mejor) {
+                const m = rec.mejor;
+                html += `<div class="reco-card">
+                    <div>
+                        <small>Sucursal recomendada (la de mayor disponibilidad)</small>
+                        <div style="font-weight:bold; font-size:1.15rem;"><i class="fas fa-store" style="color:var(--success);"></i> ${_escHtml(m.nombre_sucursal)} <span style="color:var(--text-muted); font-size:.8rem; font-weight:normal;">(EQUIPO-0${m.id_sucursal})</span></div>
+                        <div style="font-size:.88rem; color:var(--text-muted); margin-top:4px;">Tiene <b style="color:var(--text-main);">${m.stock} pz</b> de ${nombreProd}: cubre las <b style="color:var(--text-main);">${faltante}</b> que te faltan y le sobran ${m.stock - faltante}.</div>
+                    </div>
+                    <button class="btn-add btn-grande" onclick="prestarUno(${m.id_sucursal}, ${faltante})"><i class="fas fa-handshake"></i> Registrar préstamo de ${faltante} pz</button>
+                </div>`;
+            } else if (rec.combinacion) {
+                const c = rec.combinacion;
+                const partes = c.partes.map(x => `<li><b>${x.toma} pz</b> de ${_escHtml(x.nombre_sucursal)} <span style="color:var(--text-muted);">(tiene ${x.stock})</span></li>`).join('');
+                html += `<div class="reco-card aviso">
+                    <div>
+                        <small>Ninguna sucursal alcanza sola — combinación sugerida</small>
+                        <ul style="margin:6px 0 0 0; padding-left:18px; font-size:.9rem;">${partes}</ul>
+                        ${c.faltaAun > 0 ? `<div style="font-size:.85rem; color:var(--danger); margin-top:6px;">Aun juntando todas las sucursales faltarían ${c.faltaAun} pz.</div>` : ''}
+                    </div>
+                    <button class="btn-add btn-grande" onclick="prestarCombinacion()"><i class="fas fa-handshake"></i> Registrar préstamos</button>
+                </div>`;
+            } else {
+                html += `<div class="reco-card malo"><div><small>Sin disponibilidad en sucursales</small><div style="font-weight:bold;"><i class="fas fa-times-circle" style="color:var(--danger);"></i> Ninguna otra sucursal tiene ${nombreProd}.</div></div></div>`;
+            }
+
+            if (res.sinLectura) html += redAvisoSinLectura(res);
+            if (res.vacio) html += `<div class="reco-card aviso" style="display:block;"><small>La Matriz no tiene existencias registradas</small>La Matriz respondió, pero ninguna sucursal tiene ${nombreProd} registrado en su inventario.</div>`;
+            html += `<div class="table-container"><table>
+                <thead><tr><th>Sucursal</th><th style="text-align:center;">Disponible</th><th>¿Cubre lo que falta?</th><th>Acción</th></tr></thead><tbody>`;
+            if (!rec.otras.length) html += `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">La Matriz no reportó otras sucursales para este producto${res.filas.length ? ' (solo reportó: ' + res.filas.map(f => _escHtml(f.nombre_sucursal)).join(', ') + ')' : ''}.</td></tr>`;
+            rec.otras.forEach(f => {
+                const esMejor = rec.mejor && f.id_sucursal === rec.mejor.id_sucursal;
+                const cubre = faltante > 0 && f.stock >= faltante;
+                const estado = faltante === 0 ? '<span style="color:var(--text-muted);">—</span>'
+                    : f.stock === 0 ? '<span class="status-pill" style="border-color:var(--danger); color:var(--danger);">AGOTADO</span>'
+                    : cubre ? '<span class="status-pill" style="border-color:var(--success); color:var(--success);">SÍ ALCANZA</span>'
+                    : `<span class="status-pill" style="border-color:var(--warning); color:var(--warning);">PARCIAL (${f.stock}/${faltante})</span>`;
+                const accion = (faltante > 0 && f.stock > 0)
+                    ? `<button class="btn-add" onclick="prestarUno(${f.id_sucursal}, ${Math.min(faltante, f.stock)})"><i class="fas fa-handshake"></i> Pedir ${Math.min(faltante, f.stock)} pz</button>` : '';
+                html += `<tr class="${esMejor ? 'fila-mejor' : ''}">
+                    <td><b>${_escHtml(f.nombre_sucursal)}</b> <small style="color:var(--text-muted);">EQUIPO-0${f.id_sucursal}</small>${esMejor ? ' <i class="fas fa-star" style="color:var(--warning);" title="Recomendada"></i>' : ''}</td>
+                    <td style="text-align:center; font-weight:bold; font-size:1.05rem; color:${f.stock ? 'var(--text-main)' : 'var(--danger)'};">${f.stock}</td>
+                    <td>${estado}</td><td>${accion}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+
+            if (rec.matriz) {
+                html += `<div class="nota-matriz"><span><i class="fas fa-warehouse" style="color:var(--accent);"></i> <b>${_escHtml(rec.matriz.nombre_sucursal)}</b> tiene ${rec.matriz.stock} pz de este producto.</span><a href="pedidos.html">Pedir a Matriz <i class="fas fa-arrow-right"></i></a></div>`;
+            }
+            if (res.raw) html += `<details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--accent);font-weight:bold;font-size:.82rem;">Ver lo que respondió la Matriz</summary><pre style="white-space:pre-wrap;word-break:break-word;font-size:.75rem;color:var(--text-muted);margin:8px 0 0 0;">${_escHtml(JSON.stringify(res.raw, null, 2))}</pre></details>`;
+            cont.innerHTML = html;
+            cont._rec = rec; cont._faltante = faltante; cont._sku = p.sku_id;
+        }
+
+        function prestarUno(idSuc, cant) {
+            const cont = document.getElementById('resultado-uno');
+            const f = cont._rec.otras.find(x => x.id_sucursal === idSuc);
+            redPrestarDe(idSuc, f ? f.nombre_sucursal : _nombreNodo(idSuc), cont._sku, cant,
+                () => ultimaBusquedaUno && ejecutarUno(ultimaBusquedaUno.p, ultimaBusquedaUno.cant, false));
+        }
+
+        function prestarCombinacion() {
+            const cont = document.getElementById('resultado-uno');
+            const p = ultimaBusquedaUno.p;
+            const asign = cont._rec.combinacion.partes.map(x => ({ idSuc: x.id_sucursal, nombre: x.nombre_sucursal, sku: p.sku_id, nombreProd: p.nombre_pieza, cant: x.toma }));
+            redPrestarLote(asign, () => ejecutarUno(ultimaBusquedaUno.p, ultimaBusquedaUno.cant, false));
+        }
+
+        // ---------- 4: varios productos ----------
+        async function agregarVarios() {
+            const p = await resolverProducto(document.getElementById('var-producto').value);
+            if (!p) return;
+            const cant = parseInt(document.getElementById('var-cant').value);
+            if (!cant || cant < 1) { Swal.fire({ icon: 'info', title: 'Cantidad inválida', text: 'Indica cuántas piezas pide el cliente.', ...TEMA }); return; }
+            const ya = listaVarios.find(i => i.sku === p.sku_id);
+            if (ya) ya.cant = cant; else listaVarios.push({ sku: p.sku_id, nombre: p.nombre_pieza, cant });
+            document.getElementById('var-producto').value = '';
+            document.getElementById('var-cant').value = 1;
+            evaluarVarios(false);
+        }
+
+        function quitarVarios(sku) { listaVarios = listaVarios.filter(i => i.sku !== sku); evaluarVarios(false); }
+        function limpiarVarios() { listaVarios = []; evaluarVarios(false); }
+
+        function panelVacio() {
+            return `<div class="panel-header" style="background:var(--bg-dark);"><span style="color:var(--info);"><i class="fas fa-satellite-dish"></i> Viabilidad de Surtido</span></div>
+                    <div style="text-align:center; padding:30px 20px; color:var(--text-muted);"><i class="fas fa-box-open" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i><br>Agrega productos a la lista para ver qué sucursal puede surtir el pedido completo.</div>`;
+        }
+
+        async function evaluarVarios(forzar) {
+            const tbody = document.getElementById('tabla-varios');
+            const panel = document.getElementById('panel-viabilidad');
+            if (!listaVarios.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">Agrega productos para armar el paquete.</td></tr>';
+                panel.innerHTML = panelVacio();
+                return;
+            }
+            tbody.innerHTML = listaVarios.map(i => `<tr><td><span class="sku-tag">${_escHtml(i.sku)}</span></td><td><b>${_escHtml(i.nombre)}</b></td><td style="text-align:center; font-weight:bold; color:var(--accent);">x${i.cant}</td><td style="text-align:center;" colspan="3"><i class="fas fa-spinner fa-spin"></i></td></tr>`).join('');
+
+            const resultados = await apiRedDisponibilidadVarios(listaVarios.map(i => i.sku), forzar);
+            ultimosResultados = resultados;
+            mostrarEstadoMatriz();
+            const reqs = listaVarios.map((i, k) => {
+                const filas = resultados[k].filas;
+                const miStock = redMiStock(i.sku, filas);
+                return { sku: i.sku, nombre: i.nombre, cant: i.cant, miStock, faltante: Math.max(0, i.cant - miStock), filas };
+            });
+
+            tbody.innerHTML = reqs.map(r => `<tr>
+                <td><span class="sku-tag">${_escHtml(r.sku)}</span></td>
+                <td><b>${_escHtml(r.nombre)}</b></td>
+                <td style="text-align:center; font-weight:bold; color:var(--accent); font-size:1.05rem;">x${r.cant}</td>
+                <td style="text-align:center;">${r.miStock}</td>
+                <td style="text-align:center; font-weight:bold; color:${r.faltante ? 'var(--danger)' : 'var(--success)'};">${r.faltante}</td>
+                <td><button class="btn-remove" onclick="quitarVarios('${_escHtml(r.sku)}')"><i class="fas fa-trash"></i></button></td>
+            </tr>`).join('');
+
+            const peor = resultados.some(r => r.origen === 'local') ? 'local' : resultados.some(r => r.origen === 'cache') ? 'cache' : 'matriz';
+            const fechas = resultados.map(r => r.actualizado).filter(Boolean).sort();
+            renderEvaluacionVarios(reqs, peor, fechas[0] || null);
+        }
+
+        let ultimaEval = null;
+        let ultimosResultados = [];
+
+        function renderEvaluacionVarios(reqs, origen, actualizado) {
+            const panel = document.getElementById('panel-viabilidad');
+            const ev = redEvaluarVarios(reqs);
+            ultimaEval = { reqs, ev };
+
+            let html = '';
+            if (ev.pendientes.length === 0) {
+                html += `<div class="panel-header" style="background:var(--success); color:white;"><span><i class="fas fa-check-circle"></i> Tu sucursal puede surtirlo todo</span></div>`;
+            } else if (ev.completos.length) {
+                html += `<div class="panel-header" style="background:var(--bg-dark);"><span style="color:var(--success);"><i class="fas fa-satellite-dish"></i> Viabilidad de Surtido</span></div>`;
+            } else {
+                html += `<div class="panel-header" style="background:var(--danger); color:white;"><span><i class="fas fa-exclamation-triangle"></i> Riesgo de Triangulación</span></div>
+                         <div style="padding:15px; background:rgba(240,82,82,0.1); font-size:0.85rem; border-bottom:1px solid var(--border);">Ninguna sucursal cuenta con el stock suficiente para cubrir toda la lista en un solo viaje.</div>`;
+            }
+            html += `<div style="padding:10px 15px 0 15px;">${badgeFuente(origen, actualizado)}</div>`;
+            const malLeido = ultimosResultados.filter(r => r.sinLectura);
+            if (malLeido.length) html += `<div style="padding:10px 15px 0 15px;">${redAvisoSinLectura(malLeido[0])}</div>`;
+
+            html += `<div style="padding:15px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2);">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px; font-weight:bold;"><i class="fas fa-box"></i> RESUMEN DE PAQUETE:</div>`;
+            reqs.forEach(r => {
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:5px; gap:8px;">
+                    <span><span class="sku-tag">${_escHtml(r.sku)}</span></span>
+                    <span style="font-weight:bold; color:${r.faltante ? 'var(--accent)' : 'var(--success)'};">${r.faltante ? 'faltan ' + r.faltante : 'cubierto'} <span style="color:var(--text-muted); font-weight:normal;">/ x${r.cant}</span></span>
+                </div>`;
+            });
+            html += `</div><div style="overflow-y:auto; flex-grow:1;">`;
+
+            if (ev.completos.length) {
+                const b = ev.completos[0];
+                html += `<div style="padding:15px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Sucursal recomendada (más disponibilidad)</div>
+                    <div style="font-weight:bold; font-size:1.05rem;"><i class="fas fa-store" style="color:var(--success);"></i> ${_escHtml(b.nombre)} <span style="color:var(--text-muted); font-size:.75rem; font-weight:normal;">EQUIPO-0${b.id}</span></div>
+                    <div style="font-size:.82rem; color:var(--text-muted); margin:4px 0 10px 0;">Surte los ${b.total} producto(s) que te faltan en un solo viaje.</div>
+                    <button class="btn-add" style="width:100%;" onclick="prestarVariosRecomendada()"><i class="fas fa-handshake"></i> Registrar préstamos con esta sucursal</button>
+                </div>`;
+            } else if (ev.plan) {
+                html += `<div style="padding:15px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Plan alterno (mejor sucursal por producto)</div>`;
+                ev.plan.forEach(x => {
+                    html += `<div style="font-size:.85rem; margin-bottom:6px;"><span class="sku-tag">${_escHtml(x.sku)}</span> ${x.nodo
+                        ? `→ <b>${_escHtml(x.nodo.nombre_sucursal)}</b> <span style="color:var(--text-muted);">(tiene ${x.nodo.stock}, necesitas ${x.necesita})</span>`
+                        : `<span style="color:var(--danger);">→ ninguna sucursal alcanza (${x.necesita} pz)</span>`}</div>`;
+                });
+                if (ev.plan.some(x => x.nodo)) html += `<button class="btn-add" style="width:100%; margin-top:8px;" onclick="prestarVariosPlan()"><i class="fas fa-handshake"></i> Registrar préstamos del plan</button>`;
+                html += `</div>`;
+            }
+
+            ev.nodos.forEach(n => {
+                const completo = n.cubiertos === n.total;
+                const faltan = n.detalle.filter(d => !d.cubre).map(d => `${_escHtml(d.sku)} (tiene ${d.tiene}, necesita ${d.necesita})`).join(', ');
+                html += `<div class="eval-card ${completo ? 'perfect' : 'partial'}">
+                    <div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">EQUIPO-0${n.id}</div>
+                        <div style="font-weight:bold; margin-bottom:5px;">${_escHtml(n.nombre)}</div>
+                        <div style="font-size:0.85rem;">${completo
+                            ? `<span style="color:var(--success); font-weight:bold;">Surtido Completo (${n.cubiertos}/${n.total})</span>`
+                            : `<span style="color:var(--warning); font-weight:bold;">Surtido Parcial (${n.cubiertos}/${n.total})</span><br><span style="font-size:0.75rem; color:var(--text-muted);">Falta: ${faltan}</span>`}</div>
+                    </div>
+                    <div><i class="fas ${completo ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="color:${completo ? 'var(--success)' : 'var(--warning)'}; font-size:1.5rem;"></i></div>
+                </div>`;
+            });
+            if (ev.pendientes.length && !ev.nodos.length) {
+                html += `<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:.85rem;">Ninguna otra sucursal tiene estos productos.</div>`;
+            }
+            html += `</div>`;
+            if (ev.matrizCubre) {
+                html += `<div class="nota-matriz" style="border-radius:0; border-left:0; border-right:0; border-bottom:0;"><span><i class="fas fa-warehouse" style="color:var(--accent);"></i> La Matriz puede surtir todo.</span><a href="pedidos.html">Pedir a Matriz <i class="fas fa-arrow-right"></i></a></div>`;
+            }
+            panel.innerHTML = html;
+        }
+
+        function prestarVariosRecomendada() {
+            const { reqs, ev } = ultimaEval;
+            const b = ev.completos[0];
+            const asign = ev.pendientes.map(r => ({ idSuc: b.id, nombre: b.nombre, sku: r.sku, nombreProd: r.nombre, cant: r.faltante }));
+            redPrestarLote(asign, () => evaluarVarios(false));
+        }
+
+        function prestarVariosPlan() {
+            const asign = ultimaEval.ev.plan.filter(x => x.nodo).map(x => ({ idSuc: x.nodo.id_sucursal, nombre: x.nodo.nombre_sucursal, sku: x.sku, nombreProd: x.nombre, cant: x.necesita }));
+            redPrestarLote(asign, () => evaluarVarios(false));
+        }
+
+        // ---------- Inicio ----------
+        (async function iniciar() {
+            llenarDatalist();
+            try { await apiCatalogoMatriz(); llenarDatalist(); } catch (e) { /* sin conexión: se usa el catálogo guardado */ }
+            mostrarEstadoMatriz();
+            cambiarTab('matriz');
+        })();
+    </script>
+</body>
+</html>

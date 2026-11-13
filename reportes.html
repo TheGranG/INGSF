@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroStock - Auditoría de Movimientos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --bg-dark: #1a1c23; --panel-dark: #24262d; --input-bg: #2d2f36; --accent: #7e3af2; --text-main: #e5e7eb; --text-muted: #9ca3af; --success: #0e9f6e; --danger: #f05252; --warning: #e3a008; --info: #3f83f8; --border: #374151; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-dark); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+        nav { width: 100px; background: var(--panel-dark); display: flex; flex-direction: column; align-items: center; padding-top: 20px; border-right: 1px solid var(--border); flex-shrink: 0; }
+        .nav-item { width: 100%; padding: 18px 0; display: flex; flex-direction: column; align-items: center; color: var(--text-muted); cursor: pointer; transition: 0.2s; border-left: 3px solid transparent; text-decoration: none; }
+        .nav-item:hover, .nav-item.active { color: var(--accent); background-color: rgba(126, 58, 242, 0.1); border-left: 3px solid var(--accent); }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 8px; }
+        .nav-item span { font-size: 0.7rem; font-weight: 600; text-align: center; }
+        .main-content { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; overflow-y: hidden; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--panel-dark); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        
+        .search-container { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .search-bar { flex: 1; padding: 12px 15px; background: var(--input-bg); border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; box-sizing: border-box;}
+        .search-bar:focus { border-color: var(--accent); }
+        .select-period { width: auto; padding: 12px 15px; background: var(--input-bg); border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; cursor: pointer; font-weight: bold; }
+        .btn-sync { background: var(--input-bg); border: 1px solid var(--border); color: white; padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .btn-sync:hover { border-color: var(--accent); color: var(--accent); }
+        .user-badge { display: flex; align-items: center; gap: 8px; background: var(--input-bg); padding: 9px 15px; border-radius: 8px; border: 1px solid var(--border); font-weight: bold; font-size: 0.9rem; }
+
+        .table-container { background: var(--panel-dark); border-radius: 12px; flex-grow: 1; overflow-y: auto; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        th { position: sticky; top: 0; background: #2d2f36; padding: 15px; text-align: left; font-size: 0.75rem; color: var(--text-muted); z-index: 10; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.85rem; }
+        .sku-tag { background: #374151; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; }
+        .mov-icon { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 5px; }
+    
+/* ============================================================
+   RESPONSIVE ELECTROSTOCK — escritorio + móvil
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+button,input,select{max-width:100%}
+@media (max-width:1100px) and (min-width:701px){
+  nav{width:86px}
+  .main-content,.contenido-principal{padding:18px}
+  .kpi-row{gap:12px}
+  .kpi-card{padding:12px}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{padding:12px 15px}
+}
+@media (max-width:700px){
+  html,body{width:100%;min-width:0;height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  nav{order:2;width:100%;height:68px;min-height:68px;padding:0;display:flex;flex-direction:row;justify-content:flex-start;align-items:stretch;border-right:0;border-top:1px solid var(--border,var(--borde,#374151));overflow-x:auto;overflow-y:hidden;z-index:100}
+  .nav-item,.opcion-nav{flex:0 0 72px;width:72px;min-width:72px;height:68px;padding:7px 2px;display:flex;justify-content:center;gap:3px;border-left:0!important;border-top:3px solid transparent}
+  .nav-item:hover,.nav-item.active,.opcion-nav:hover,.opcion-nav.activa{border-left:0!important;border-top:3px solid var(--accent,var(--acento,#7e3af2))}
+  .nav-item i,.opcion-nav i{font-size:1rem;margin-bottom:2px}
+  .nav-item span,.opcion-nav span{font-size:.56rem;line-height:1.1;white-space:nowrap}
+  .main-content,.contenido-principal{order:1;width:100%;min-width:0;height:calc(100vh - 68px);flex:1 1 auto;padding:10px;overflow-x:hidden;overflow-y:auto}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{width:100%;padding:10px;margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:stretch}
+  .top-bar>*,.barra-superior>*,.header-actions>*,.top-search-container>*{min-width:0}
+  .top-bar-right{width:100%;flex-wrap:wrap;gap:7px}
+  .user-badge{max-width:100%;font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  h1{font-size:1.2rem!important} h2{font-size:1.05rem!important} h3{font-size:.92rem!important}
+  .search-container,.contenedor-busqueda{width:100%;flex-wrap:wrap}
+  .search-container>*{width:100%;flex:1 1 100%}
+  .search-bar,.campo-busqueda,.search-bar-main,.select-period{width:100%;min-width:0}
+  .kpi-row{display:grid;grid-template-columns:1fr;gap:8px}
+  .kpi-card{min-width:0;padding:10px}
+  .cards-grid{grid-template-columns:1fr!important;gap:8px}
+  .sucursal-card{min-width:0;padding:10px}
+  .cotizador-layout,.distribucion-venta{display:flex;flex-direction:column;width:100%;height:auto;min-height:0;gap:10px;overflow:visible}
+  .panel-lista,.panel-evaluacion,.columna-inventario,.columna-ticket{width:100%!important;min-width:0;max-width:none;flex:none}
+  .columna-inventario{min-height:280px}
+  .columna-ticket{min-height:260px}
+  .table-container,.contenedor-tabla,.panel-lista,#resultados-busqueda{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;min-width:600px}
+  th{padding:9px 8px;font-size:.66rem}
+  td{padding:8px;font-size:.78rem;white-space:nowrap}
+  .panel-header{padding:9px 10px;gap:7px;flex-wrap:wrap}
+  .stepper{gap:4px}
+  .input-qty{width:48px}
+  canvas,svg,img{max-width:100%}
+  #resultados-busqueda{left:10px!important;right:10px!important;top:85px!important;width:calc(100% - 20px)}
+}
+@media (max-width:380px){
+  .main-content,.contenido-principal{padding:7px}
+  nav,.nav-item,.opcion-nav{height:62px;min-height:62px}
+  .nav-item,.opcion-nav{flex-basis:64px;min-width:64px;width:64px}
+  .nav-item span,.opcion-nav span{font-size:.51rem}
+}
+</style>
+</head>
+<body>
+
+    <nav>
+        <a href="venta.html" class="nav-item"><i class="fas fa-cash-register"></i><span>Venta</span></a>
+        <a href="inventario.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventario</span></a>
+        <a href="sucursales.html" class="nav-item"><i class="fas fa-network-wired"></i><span>Sucursales</span></a>
+        <a href="pedidos.html" class="nav-item"><i class="fas fa-truck-loading"></i><span>Pedidos</span></a>
+        <a href="prestamos.html" class="nav-item"><i class="fas fa-handshake"></i><span>Préstamos</span></a>
+        <a href="usuarios.html" class="nav-item"><i class="fas fa-user-shield"></i><span>Usuarios</span></a>
+        <a href="mapa.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Mapa</span></a>
+        <a href="matriz.html" class="nav-item"><i class="fas fa-server"></i><span>Matriz</span></a>
+        <a href="reportes.html" class="nav-item active"><i class="fas fa-chart-line"></i><span>Reportes</span></a>
+    </nav>
+
+    <main class="main-content">
+        <div id="estado-matriz" style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;"></div>
+        <div class="top-bar">
+            <h2 style="margin:0; font-size:1.3rem;"><i class="fas fa-file-invoice" style="color: var(--accent);"></i> Auditoría de Movimientos</h2>
+            <div class="top-bar-right">
+                <div class="user-badge">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="usuario-nombre">Cargando...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <select id="filtro-periodo" class="select-period" onchange="aplicarFiltros()">
+                <option value="hoy">Hoy</option>
+                <option value="semana">Esta Semana</option>
+                <option value="mes" selected>Este Mes</option>
+                <option value="todos">Historial Completo</option>
+            </select>
+            <input type="text" id="input-busqueda" class="search-bar" placeholder="Buscar por Folio, SKU, Operación o Descripción..." onkeyup="aplicarFiltros()">
+            <button class="btn-sync" onclick="cargarReportes()"><i class="fas fa-sync-alt"></i> Actualizar Listado</button>
+            <button class="btn-sync" onclick="verGananciasMatriz()"><i class="fas fa-trophy"></i> Ganancias Globales</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha / Hora</th>
+                        <th>Operación</th>
+                        <th>Folio Ref.</th>
+                        <th>SKU</th>
+                        <th style="text-align:center;">Cant.</th>
+                        <th>Descripción (Log)</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-reportes">
+                    <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando registros de auditoría...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script>
+        document.getElementById('usuario-nombre').innerText = `${OPERADOR_ACTUAL} (${SUCURSAL_ACTUAL.nombre})`;
+
+        let reportesMaster = [];
+
+        async function cargarReportes() {
+            reportesMaster = apiReportes().filter(m => m.id_sucursal === SUCURSAL_ACTUAL.id);
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const tbody = document.getElementById('tabla-reportes');
+            const textoBuscado = document.getElementById('input-busqueda').value.toLowerCase();
+            const periodoSeleccionado = document.getElementById('filtro-periodo').value;
+            const ahora = new Date();
+
+            tbody.innerHTML = '';
+            let contador = 0;
+
+            reportesMaster.forEach(m => {
+                const fechaMov = new Date(m.fecha_movimiento);
+                let cumpleFecha = true;
+
+                if (periodoSeleccionado === 'hoy') {
+                    cumpleFecha = fechaMov.toDateString() === ahora.toDateString();
+                } else if (periodoSeleccionado === 'semana') {
+                    const hace7Dias = new Date();
+                    hace7Dias.setDate(ahora.getDate() - 7);
+                    cumpleFecha = fechaMov >= hace7Dias;
+                } else if (periodoSeleccionado === 'mes') {
+                    cumpleFecha = fechaMov.getMonth() === ahora.getMonth() && fechaMov.getFullYear() === ahora.getFullYear();
+                }
+
+                const contenidoUnido = Object.values(m).join(' ').toLowerCase();
+                const cumpleTexto = contenidoUnido.includes(textoBuscado);
+
+                if (cumpleFecha && cumpleTexto) {
+                    contador++;
+                    const fechaStr = fechaMov.toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true });
+                    const tipo = m.tipo_movimiento ? m.tipo_movimiento.toUpperCase() : 'DESCONOCIDO';
+                    const folio = m.folio_referencia || 'N/A';
+                    
+                    let iconHtml = '';
+                    if (tipo === 'ENTRADA' || tipo.includes('RECUPERACION')) {
+                        iconHtml = `<span class="mov-icon" style="color:var(--success); border-color:var(--success);"><i class="fas fa-arrow-down"></i> ${tipo}</span>`;
+                    } else if (tipo === 'SALIDA' || tipo === 'VENTA') {
+                        iconHtml = `<span class="mov-icon" style="color:var(--danger); border-color:var(--danger);"><i class="fas fa-arrow-up"></i> ${tipo}</span>`;
+                    } else if (tipo === 'PEDIDO' || tipo === 'PENDIENTE') {
+                        iconHtml = `<span class="mov-icon" style="color:var(--info); border-color:var(--info);"><i class="fas fa-truck"></i> ${tipo}</span>`;
+                    } else {
+                        iconHtml = `<span class="mov-icon" style="color:var(--text-muted); border-color:var(--border);"><i class="fas fa-circle"></i> ${tipo}</span>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="color:var(--text-muted);">${fechaStr}</td>
+                            <td>${iconHtml}</td>
+                            <td><span class="sku-tag">${folio}</span></td>
+                            <td><b>${m.sku_id}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${m.cantidad} pz</td>
+                            <td style="color:var(--text-muted);">${m.descripcion}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (contador === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">No se encontraron movimientos.</td></tr>';
+            }
+        }
+
+        async function verGananciasMatriz() {
+        const data = await apiGananciasMatriz();
+        if (data.error) {
+            return Swal.fire({icon:'error', title:'No disponible', text:data.mensaje, background:'#24262d', color:'#e5e7eb'});
+        }
+        const lista = Array.isArray(data) ? data : (data.ganancias || data.resultados || data.data || []);
+        const html = lista.map((x,i) => {
+            const id = x.id_sucursal ?? x.sucursal ?? x.id ?? '?';
+            const total = x.total ?? x.ganancia ?? x.ventas ?? x.monto ?? 0;
+            return `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #374151;"><b>#${i+1} Sucursal ${id}</b><span>$${Number(total).toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>`;
+        }).join('');
+        MATRIZ_CONECTADA = true; mostrarEstadoMatriz();
+        Swal.fire({title:'Ganancias Globales', html:html || 'La Matriz no devolvió registros.', width:600, background:'#24262d', color:'#e5e7eb'});
+    }
+    apiCatalogoMatriz().then(()=>{MATRIZ_CONECTADA=true; mostrarEstadoMatriz();}).catch(()=>mostrarEstadoMatriz());
+    cargarReportes();
+    </script>
+</body>
+</html>

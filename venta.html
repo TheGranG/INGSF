@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroStock - Punto de Venta</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { 
+            --fondo-oscuro: #1a1c23; 
+            --panel-oscuro: #24262d; 
+            --entrada-bg: #2d2f36; 
+            --acento: #7e3af2; 
+            --texto-principal: #e5e7eb; 
+            --texto-tenue: #9ca3af; 
+            --exito: #0e9f6e; 
+            --peligro: #f05252; 
+            --advertencia: #e3a008; 
+            --borde: #374151; 
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; } 
+        ::-webkit-scrollbar-track { background: var(--fondo-oscuro); } 
+        ::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 4px; }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            background-color: var(--fondo-oscuro); 
+            color: var(--texto-principal); 
+            overflow: hidden; 
+        }
+
+        nav { 
+            width: 100px; 
+            background: var(--panel-oscuro); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding-top: 20px; 
+            border-right: 1px solid var(--borde); 
+            flex-shrink: 0; 
+        }
+
+        .opcion-nav { 
+            width: 100%; 
+            padding: 18px 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            color: var(--texto-tenue); 
+            cursor: pointer; 
+            transition: 0.2s; 
+            border-left: 3px solid transparent; 
+            text-decoration: none; 
+        }
+
+        .opcion-nav:hover, .opcion-nav.activa { 
+            color: var(--acento); 
+            background-color: rgba(126, 58, 242, 0.1); 
+            border-left: 3px solid var(--acento); 
+        }
+
+        .opcion-nav i { font-size: 1.4rem; margin-bottom: 8px; }
+        .opcion-nav span { font-size: 0.7rem; font-weight: 600; text-align: center; }
+
+        .contenido-principal { 
+            flex-grow: 1; 
+            padding: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        .barra-superior { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            background: var(--panel-oscuro); 
+            padding: 15px 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--borde); 
+        }
+
+        .distribucion-venta { display: flex; gap: 20px; height: 100%; overflow: hidden; }
+        .columna-inventario { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .columna-ticket { 
+            width: 350px; 
+            background: var(--panel-oscuro); 
+            border: 1px solid var(--borde); 
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+        }
+
+        .contenedor-busqueda { position: relative; margin-bottom: 15px; }
+        .campo-busqueda { 
+            width: 100%; 
+            padding: 12px 15px 12px 40px; 
+            background: var(--entrada-bg); 
+            border: 1px solid var(--borde); 
+            color: white; 
+            border-radius: 8px; 
+            outline: none; 
+            box-sizing: border-box;
+        }
+
+        .icono-busqueda { position: absolute; left: 15px; top: 14px; color: var(--texto-tenue); }
+        .contenedor-tabla { 
+            background: var(--panel-oscuro); 
+            border-radius: 12px; 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            border: 1px solid var(--borde); 
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            position: sticky; 
+            top: 0; 
+            background: #2d2f36; 
+            padding: 15px; 
+            text-align: left; 
+            font-size: 0.75rem; 
+            color: var(--texto-tenue); 
+            text-transform: uppercase; 
+            z-index: 10; 
+        }
+
+        td { padding: 12px 15px; border-bottom: 1px solid var(--borde); font-size: 0.9rem; }
+        .etiqueta-sku { background: #374151; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+
+        .btn-agregar { 
+            background: var(--entrada-bg); 
+            border: 1px solid var(--borde); 
+            color: var(--texto-principal); 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        }
+        .btn-agregar:hover { background: var(--acento); color: white; }
+
+        .btn-prestamo { 
+            background: transparent; 
+            border: 1px solid var(--advertencia); 
+            color: var(--advertencia); 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            margin-left: 5px; 
+        }
+        .btn-prestamo:hover { background: var(--advertencia); color: #000; }
+
+        .encabezado-ticket { padding: 20px; border-bottom: 1px solid var(--borde); font-weight: bold; font-size: 1.1rem; }
+        .cuerpo-ticket { flex: 1; overflow-y: auto; padding: 15px; background: var(--fondo-oscuro); }
+        .pie-ticket { padding: 20px; border-top: 1px solid var(--borde); }
+        
+        .renglon-ticket { 
+            background: var(--panel-oscuro); 
+            border: 1px solid var(--borde); 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            position: relative; 
+        }
+
+        .controles-cantidad { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            background: var(--entrada-bg); 
+            border-radius: 6px; 
+            padding: 4px 8px; 
+            margin-top: 8px; 
+            width: fit-content; 
+        }
+
+        .btn-cantidad { background: transparent; border: none; color: white; cursor: pointer; width: 20px; height: 20px; }
+        
+        .btn-cobrar { 
+            width: 100%; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: none; 
+            background: var(--acento); 
+            color: white; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            transition: 0.2s; 
+        }
+
+        .btn-limpiar {
+            width: 100%; 
+            margin-top: 10px; 
+            background: transparent; 
+            border: 1px solid var(--borde); 
+            color: var(--texto-tenue); 
+            padding: 10px; 
+            border-radius: 8px; 
+            cursor: pointer;
+        }
+    
+/* ============================================================
+   RESPONSIVE ELECTROSTOCK — escritorio + móvil
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+button,input,select{max-width:100%}
+@media (max-width:1100px) and (min-width:701px){
+  nav{width:86px}
+  .main-content,.contenido-principal{padding:18px}
+  .kpi-row{gap:12px}
+  .kpi-card{padding:12px}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{padding:12px 15px}
+}
+@media (max-width:700px){
+  html,body{width:100%;min-width:0;height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  nav{order:2;width:100%;height:68px;min-height:68px;padding:0;display:flex;flex-direction:row;justify-content:flex-start;align-items:stretch;border-right:0;border-top:1px solid var(--border,var(--borde,#374151));overflow-x:auto;overflow-y:hidden;z-index:100}
+  .nav-item,.opcion-nav{flex:0 0 72px;width:72px;min-width:72px;height:68px;padding:7px 2px;display:flex;justify-content:center;gap:3px;border-left:0!important;border-top:3px solid transparent}
+  .nav-item:hover,.nav-item.active,.opcion-nav:hover,.opcion-nav.activa{border-left:0!important;border-top:3px solid var(--accent,var(--acento,#7e3af2))}
+  .nav-item i,.opcion-nav i{font-size:1rem;margin-bottom:2px}
+  .nav-item span,.opcion-nav span{font-size:.56rem;line-height:1.1;white-space:nowrap}
+  .main-content,.contenido-principal{order:1;width:100%;min-width:0;height:calc(100vh - 68px);flex:1 1 auto;padding:10px;overflow-x:hidden;overflow-y:auto}
+  .top-bar,.barra-superior,.header-actions,.top-search-container{width:100%;padding:10px;margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:stretch}
+  .top-bar>*,.barra-superior>*,.header-actions>*,.top-search-container>*{min-width:0}
+  .top-bar-right{width:100%;flex-wrap:wrap;gap:7px}
+  .user-badge{max-width:100%;font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  h1{font-size:1.2rem!important} h2{font-size:1.05rem!important} h3{font-size:.92rem!important}
+  .search-container,.contenedor-busqueda{width:100%;flex-wrap:wrap}
+  .search-container>*{width:100%;flex:1 1 100%}
+  .search-bar,.campo-busqueda,.search-bar-main,.select-period{width:100%;min-width:0}
+  .kpi-row{display:grid;grid-template-columns:1fr;gap:8px}
+  .kpi-card{min-width:0;padding:10px}
+  .cards-grid{grid-template-columns:1fr!important;gap:8px}
+  .sucursal-card{min-width:0;padding:10px}
+  .cotizador-layout,.distribucion-venta{display:flex;flex-direction:column;width:100%;height:auto;min-height:0;gap:10px;overflow:visible}
+  .panel-lista,.panel-evaluacion,.columna-inventario,.columna-ticket{width:100%!important;min-width:0;max-width:none;flex:none}
+  .columna-inventario{min-height:280px}
+  .columna-ticket{min-height:260px}
+  .table-container,.contenedor-tabla,.panel-lista,#resultados-busqueda{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;min-width:600px}
+  th{padding:9px 8px;font-size:.66rem}
+  td{padding:8px;font-size:.78rem;white-space:nowrap}
+  .panel-header{padding:9px 10px;gap:7px;flex-wrap:wrap}
+  .stepper{gap:4px}
+  .input-qty{width:48px}
+  canvas,svg,img{max-width:100%}
+  #resultados-busqueda{left:10px!important;right:10px!important;top:85px!important;width:calc(100% - 20px)}
+}
+@media (max-width:380px){
+  .main-content,.contenido-principal{padding:7px}
+  nav,.nav-item,.opcion-nav{height:62px;min-height:62px}
+  .nav-item,.opcion-nav{flex-basis:64px;min-width:64px;width:64px}
+  .nav-item span,.opcion-nav span{font-size:.51rem}
+}
+</style>
+</head>
+<body>
+
+    <nav>
+        <a href="venta.html" class="opcion-nav activa"><i class="fas fa-cash-register"></i><span>Venta</span></a>
+        <a href="inventario.html" class="opcion-nav"><i class="fas fa-boxes"></i><span>Inventario</span></a>
+        <a href="sucursales.html" class="opcion-nav"><i class="fas fa-network-wired"></i><span>Sucursales</span></a>
+        <a href="pedidos.html" class="opcion-nav"><i class="fas fa-truck-loading"></i><span>Pedidos</span></a>
+        <a href="prestamos.html" class="opcion-nav"><i class="fas fa-handshake"></i><span>Préstamos</span></a>
+        <a href="usuarios.html" class="opcion-nav"><i class="fas fa-user-shield"></i><span>Usuarios</span></a>
+        <a href="mapa.html" class="opcion-nav"><i class="fas fa-map-marked-alt"></i><span>Mapa</span></a>
+        <a href="matriz.html" class="opcion-nav"><i class="fas fa-server"></i><span>Matriz</span></a>
+        <a href="reportes.html" class="opcion-nav"><i class="fas fa-chart-line"></i><span>Reportes</span></a>
+    </nav>
+
+    <main class="contenido-principal">
+        <div class="barra-superior">
+            <div id="estado-matriz" style="font-size:.78rem;color:var(--texto-tenue);order:3;width:100%;"></div>
+            <h2 style="margin:0;"><i class="fas fa-shopping-cart" style="color: var(--acento);"></i> Punto de Venta</h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="btn-limpiar" onclick="sincronizarCatalogoVenta()" style="width:auto;padding:8px 12px;">↻ Matriz</button>
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--entrada-bg); padding: 8px 15px; border-radius: 8px; border: 1px solid var(--borde);">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="cajero-nombre">Cargando...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="distribucion-venta">
+            <div class="columna-inventario">
+                <div class="contenedor-busqueda">
+                    <i class="fas fa-search icono-busqueda"></i>
+                    <input type="text" id="input-busqueda" class="campo-busqueda" placeholder="Buscar por clave o descripción...">
+                </div>
+                <div class="contenedor-tabla">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Clave SKU</th>
+                                <th>Descripción</th>
+                                <th>Precio Unitario</th>
+                                <th>Existencia Local</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-productos">
+                            <tr><td colspan="5" style="text-align: center; padding: 50px;">Cargando catálogo...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="columna-ticket">
+                <div class="encabezado-ticket">Ticket de Venta</div>
+                <div class="cuerpo-ticket" id="contenedor-ticket"></div>
+                <div class="pie-ticket">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--texto-tenue);">
+                        <span>Total a Pagar</span>
+                        <span id="total-txt" style="font-size: 1.5rem; font-weight: bold; color: var(--acento);">$0.00</span>
+                    </div>
+                    <button class="btn-cobrar" onclick="procesarVenta()"><i class="fas fa-check-circle"></i> Confirmar Venta</button>
+                    <button class="btn-limpiar" onclick="limpiarTicket()">Limpiar Ticket</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script>
+        let ticket = [];
+
+        document.getElementById('cajero-nombre').innerText = `${OPERADOR_ACTUAL} (${SUCURSAL_ACTUAL.nombre})`;
+
+        function cargarInventario() {
+            const tbody = document.getElementById('tabla-productos');
+            const datos = apiInventarioLocal(SUCURSAL_ACTUAL.id);
+            tbody.innerHTML = '';
+
+            if (datos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No hay productos registrados.</td></tr>';
+                return;
+            }
+
+            datos.forEach(row => {
+                const prod = row.productos || {};
+                const stock = parseInt(row.cantidad_actual || 0);
+                const colorStock = stock > 0 ? 'var(--exito)' : 'var(--peligro)';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="etiqueta-sku">${row.sku_id}</span></td>
+                        <td><b>${prod.nombre_pieza || 'N/A'}</b></td>
+                        <td style="font-weight:bold;">$${parseFloat(prod.precio_lista_sugerido || 0).toFixed(2)}</td>
+                        <td style="color:${colorStock}; font-weight:bold; text-align:center;">${stock}</td>
+                        <td>
+                            <button class="btn-agregar" onclick="validarYAgregar('${row.sku_id}', '${(prod.nombre_pieza || '').replace(/'/g, "\\'")}', ${prod.precio_lista_sugerido}, ${stock})" title="Agregar a Venta"><i class="fas fa-plus"></i></button>
+                            <button class="btn-prestamo" onclick="abrirModalPrestamoLibre('${row.sku_id}')" title="Solicitar Préstamo Directo"><i class="fas fa-handshake"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function validarYAgregar(sku, nombre, precio, stockMax) {
+            const item = ticket.find(i => i.sku === sku);
+            const cantidadActual = item ? item.cantidad : 0;
+            const nuevaCantidad = cantidadActual + 1;
+
+            if (nuevaCantidad > stockMax) {
+                const faltante = nuevaCantidad - stockMax;
+                Swal.fire({
+                    title: 'Sin existencia suficiente',
+                    text: `Solo dispones de ${stockMax} pz. en local. ¿Deseas solicitar el excedente (${faltante} pz) a otra sucursal?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Consultar Red',
+                    cancelButtonText: 'Solo Venta Local',
+                    background: '#24262d',
+                    color: '#e5e7eb'
+                }).then(res => { 
+                    if (res.isConfirmed) abrirModalPrestamo(sku, faltante); 
+                });
+                return; 
+            }
+
+            if (item) {
+                item.cantidad++;
+            } else {
+                ticket.push({ sku, nombre, precio, cantidad: 1, max: stockMax });
+            }
+            renderizarTicket();
+        }
+
+        function cambiarCant(index, delta) {
+            const item = ticket[index];
+            const nuevaCant = item.cantidad + delta;
+
+            if (nuevaCant > item.max) {
+                const faltante = nuevaCant - item.max;
+                Swal.fire({ 
+                    title: 'Límite alcanzado', 
+                    text: `Alcanzaste las ${item.max} piezas locales. ¿Pedir ${faltante} pz a la red?`, 
+                    showCancelButton: true, 
+                    confirmButtonText: 'Solicitar',
+                    cancelButtonText: 'Cancelar',
+                    background: '#24262d', 
+                    color: '#e5e7eb'
+                }).then(res => { 
+                    if (res.isConfirmed) abrirModalPrestamo(item.sku, faltante); 
+                });
+                return;
+            }
+
+            item.cantidad += delta;
+            if (item.cantidad <= 0) ticket.splice(index, 1);
+            renderizarTicket();
+        }
+
+        // Consulta la red EN VIVO (Matriz), recomienda la sucursal con más disponibilidad
+        // y envía la solicitud de préstamo. Las piezas llegan a tu almacén cuando la Matriz la acepte y transfiera.
+        function abrirModalPrestamo(sku, cantSugerida) {
+            redModalPrestamo(sku, cantSugerida, despuesDePrestamo);
+        }
+
+        function abrirModalPrestamoLibre(sku) {
+            redModalPrestamo(sku, 1, despuesDePrestamo);
+        }
+
+        function despuesDePrestamo() {
+            cargarInventario();
+            // El ticket recuerda cuánto había en local: se actualiza con el nuevo stock.
+            const inv = apiInventarioLocal(SUCURSAL_ACTUAL.id);
+            ticket.forEach(item => {
+                const r = inv.find(x => x.sku_id === item.sku);
+                if (r) item.max = Number(r.cantidad_actual || 0);
+            });
+            renderizarTicket();
+        }
+
+        function renderizarTicket() {
+            const cont = document.getElementById('contenedor-ticket');
+            if (ticket.length === 0) { 
+                cont.innerHTML = '<div style="text-align:center; padding:30px; color:var(--texto-tenue);">No hay productos en el ticket.</div>'; 
+                document.getElementById('total-txt').innerText = '$0.00'; 
+                return; 
+            }
+            
+            cont.innerHTML = ''; 
+            let total = 0;
+
+            ticket.forEach((item, i) => {
+                const sub = item.precio * item.cantidad; 
+                total += sub;
+                cont.innerHTML += `
+                    <div class="renglon-ticket">
+                        <div style="font-weight:bold;">${item.nombre}</div>
+                        <div style="font-size:0.75rem; color:var(--texto-tenue);">${item.sku}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="controles-cantidad">
+                                <button class="btn-cantidad" onclick="cambiarCant(${i}, -1)">-</button>
+                                <span style="padding:0 5px;">${item.cantidad}</span>
+                                <button class="btn-cantidad" onclick="cambiarCant(${i}, 1)">+</button>
+                            </div>
+                            <div style="color:var(--acento); font-weight:bold;">$${sub.toFixed(2)}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('total-txt').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function limpiarTicket() { 
+            ticket = []; 
+            renderizarTicket(); 
+        }
+
+        async function procesarVenta() {
+            if (ticket.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Ticket vacío', text: 'Agrega al menos un producto para procesar la venta.', background: '#24262d', color: '#e5e7eb' });
+                return;
+            }
+
+            const data = await apiProcesarVenta(SUCURSAL_ACTUAL.id, OPERADOR_ACTUAL, ticket);
+
+            if (!data.error) { 
+                if (data.matriz && data.matriz.ok === false) {
+                    // La venta SÍ se completó y el stock local SÍ bajó; solo no se pudo avisar a la Matriz todavía.
+                    Swal.fire({ icon: 'warning', title: 'Venta registrada (sin conexión a Matriz)', text: `Folio ${data.folio}. Tu inventario local ya se descontó. No se pudo avisar a la Matriz (${data.matriz.mensaje}); se reintentará automáticamente más tarde.`, background: '#24262d', color: '#e5e7eb' });
+                } else {
+                    Swal.fire({ icon: 'success', title: 'Venta Registrada', text: `Folio ${data.folio}. La transacción se completó con éxito.`, background: '#24262d', color: '#e5e7eb' }); 
+                }
+                limpiarTicket(); 
+                cargarInventario(); 
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error al procesar', text: data.mensaje || 'Error desconocido', background: '#24262d', color: '#e5e7eb' });
+            }
+        }
+        
+        document.getElementById('input-busqueda').addEventListener('keyup', (e) => {
+            const val = e.target.value.toLowerCase();
+            document.querySelectorAll('#tabla-productos tr').forEach(fila => {
+                fila.style.display = fila.innerText.toLowerCase().includes(val) ? '' : 'none';
+            });
+        });
+
+        async function sincronizarCatalogoVenta() {
+        try {
+            await apiCatalogoMatriz(true);
+            MATRIZ_CONECTADA = true;
+            mostrarEstadoMatriz();
+            cargarInventario();
+            Swal.fire({icon:'success', title:'Matriz conectada', text:'Catálogo oficial actualizado.', background:'#24262d', color:'#e5e7eb'});
+        } catch(e) {
+            Swal.fire({icon:'error', title:'Sin conexión', text:e.message, background:'#24262d', color:'#e5e7eb'});
+            mostrarEstadoMatriz();
+        }
+    }
+    apiCatalogoMatriz().then(()=>mostrarEstadoMatriz()).catch(()=>mostrarEstadoMatriz());
+    apiReintentarVentasPendientesMatriz(); // reintenta en silencio ventas que quedaron pendientes de avisar a Matriz
+    cargarInventario();
+    </script>
+</body>
+</html>
